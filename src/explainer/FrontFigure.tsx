@@ -76,7 +76,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
     <Figure
       n={2}
       title="Photos along one flight line, seen from the side"
-      caption="Bars below the ground are the photos, one per row so their overlap stays visible. The coloured strip counts how many photos see each spot."
+      caption="Bars below the ground are the photos, staggered across rows so their overlap stays visible. The coloured strip counts how many photos see each spot."
     >
       <svg viewBox={`0 0 ${VW} ${VH}`} className="fig-svg" role="img" aria-label={`At ${front}% front overlap each point is seen by about ${perSpot} photos`}>
         <rect width={VW} height={GROUND} fill="url(#sky2)" />

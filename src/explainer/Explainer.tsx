@@ -154,8 +154,9 @@ export function Explainer() {
             setWobble={(v) => set({ wobble: v })}
           />
           <p>
-            On paper, even 0% overlap covers everything. Now set both sliders near zero and turn on <em>real-world wobble</em>. Gusts tilt
-            the drone, GPS drifts by a metre or two, and the shutter fires a little early or late. Small slivers go unphotographed,
+            On paper, even 0% overlap covers everything. Now set both sliders near zero and turn on <em>real-world wobble</em>. Gusts push
+            the drone off its line, GPS drifts by a metre or two, and the shutter fires a little early or late. The wobble here is
+            on the generous side so the effect is easy to see. Small slivers go unphotographed,
             and spots seen only once can't be reconstructed in 3D. Overlap is your safety margin.
           </p>
         </section>
@@ -199,8 +200,8 @@ export function Explainer() {
             })}
           </div>
           <p>
-            Treat these as minimums, not targets. Rough terrain, tall buildings and low altitude all call for more, because the ground
-            closer to the drone shows up in fewer photos. If a site is expensive to revisit, add a margin. Reflying costs more than a
+            Treat these as minimums, not targets. Hills, trees and tall buildings call for more, especially at low altitude: anything
+            that rises toward the drone fills more of each frame, so it shows up in fewer photos than the flat ground around it. If a site is expensive to revisit, add a margin. Reflying costs more than a
             few extra photos.
           </p>
         </section>

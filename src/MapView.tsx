@@ -84,7 +84,7 @@ export function MapView({ polygon, onPolygonChange, plan, focus }: Props) {
     if (!layer) return;
     layer.clearLayers();
 
-    const shape = L.polygon(polygon, { color: '#f5b301', weight: 2, fillOpacity: 0.12, interactive: false }).addTo(layer);
+    const shape = L.polygon(polygon, { color: '#f0a24a', weight: 2, fillOpacity: 0.12, interactive: false }).addTo(layer);
     polygon.forEach((p, i) => {
       const marker = L.marker(p, { icon: vertexIcon, draggable: true, title: `Corner ${i + 1}` }).addTo(layer);
       // Only the outline follows the drag; committing on every move would recreate this marker mid-drag.
@@ -107,10 +107,10 @@ export function MapView({ polygon, onPolygonChange, plan, focus }: Props) {
     if (!plan) return;
 
     const wps = plan.waypoints;
-    L.polyline(wps, { color: '#36c5f0', weight: 2.5, interactive: false }).addTo(layer);
+    L.polyline(wps, { color: '#6ea2f5', weight: 3, interactive: false }).addTo(layer);
     if (wps.length <= MAX_WAYPOINT_DOTS) {
       for (const wp of wps) {
-        L.circleMarker(wp, { radius: 2.5, color: '#fff', weight: 1, fillColor: '#36c5f0', fillOpacity: 1, interactive: false }).addTo(layer);
+        L.circleMarker(wp, { radius: 2.5, color: '#fff', weight: 1, fillColor: '#6ea2f5', fillOpacity: 1, interactive: false }).addTo(layer);
       }
     }
     L.marker(wps[0], { icon: labelIcon('S', 'pin-start'), interactive: false, keyboard: false }).addTo(layer);

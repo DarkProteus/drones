@@ -1,5 +1,6 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { type Focus, MapView } from './MapView';
+import { Slider, Stat } from './explainer/ui';
 import { MAVIC3_WIDE } from './lib/camera';
 import type { LatLng } from './lib/geo';
 import { buildKmz, downloadBytes } from './lib/kmz';
@@ -37,37 +38,26 @@ function loadState(): { polygon: LatLng[]; settings: Settings } {
   return { polygon: [], settings: DEFAULTS };
 }
 
-const fmtDistance = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`);
-const fmtArea = (m2: number) => (m2 >= 10000 ? `${(m2 / 10000).toFixed(2)} ha` : `${Math.round(m2)} m²`);
-const fmtDuration = (s: number) => `${Math.floor(s / 60)} min ${String(Math.round(s % 60)).padStart(2, '0')} s`;
+const fmtDistance = (m: number): [string, string] => (m >= 1000 ? [(m / 1000).toFixed(2), 'km'] : [String(Math.round(m)), 'm']);
+const fmtArea = (m2: number): [string, string] => (m2 >= 10000 ? [(m2 / 10000).toFixed(2), 'ha'] : [String(Math.round(m2)), 'm²']);
+const fmtDuration = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 
-interface SliderProps {
-  label: string;
-  unit: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  onChange: (value: number) => void;
-}
-
-function Slider({ label, unit, value, min, max, step = 1, onChange }: SliderProps) {
-  const id = `field-${label.toLowerCase().replace(/\W+/g, '-')}`;
-  const set = (raw: string) => {
-    const n = Number(raw);
-    if (raw !== '' && Number.isFinite(n)) onChange(Math.min(max, Math.max(min, n)));
-  };
+function Panel({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set(e.target.value)} aria-label={`${label} slider`} />
-      <span className="number">
-        <input id={id} type="number" min={min} max={max} step={step} value={value} onChange={(e) => set(e.target.value)} />
-        <span className="unit">{unit}</span>
-      </span>
-    </div>
+    <section className="panel">
+      <h2>
+        <span className="num">{n}</span>
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }
+
+const MODES: { value: CaptureMode; name: string; body: string }[] = [
+  { value: 'interval', name: 'Interval timer', body: 'Flies each line non-stop while DJI Fly shoots on a timer. Few waypoints.' },
+  { value: 'waypoint', name: 'Photo at each waypoint', body: `Stops for every photo. Slower, max ${MAX_WAYPOINTS} waypoints.` },
+];
 
 export function App() {
   const [initial] = useState(loadState);
@@ -120,108 +110,103 @@ export function App() {
     downloadBytes(buildKmz(plan, settings.altitudeM, settings.finishAction), 'survey-mission.kmz', 'application/vnd.google-earth.kmz');
   }
 
+  const overlapHref = `./overlap/?alt=${Math.min(150, settings.altitudeM)}&front=${settings.frontOverlapPct}&side=${settings.sideOverlapPct}`;
+
   return (
     <div className="app">
+      <nav className="topbar">
+        <a href="./" className="brand">
+          <span className="brand-mark" aria-hidden="true" />
+          Survey Mission Planner
+        </a>
+        <a className="ghost small" href={overlapHref}>
+          <span className="wide-only">How overlap works →</span>
+          <span className="narrow-only">Overlap guide</span>
+        </a>
+      </nav>
+
       <aside className="sidebar">
-        <header>
-          <h1>Survey Mission Planner</h1>
-          <p className="muted">{MAVIC3_WIDE.name} · DJI Fly waypoint KMZ</p>
+        <header className="intro">
+          <p className="kicker">Mapping flights for DJI Fly</p>
+          <h1>Plan a survey mission</h1>
+          <p className="dek">
+            Draw an area, pick altitude and overlap, and download a waypoint mission for the {MAVIC3_WIDE.name.replace(/ \(.*\)/, '')}.
+          </p>
         </header>
 
         <form className="search" onSubmit={search}>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a place or enter lat, lng" aria-label="Find a place" />
-          <button type="submit">Go</button>
+          <button type="submit" className="ghost">
+            Go
+          </button>
         </form>
         {searchError && <p className="error">{searchError}</p>}
 
-        <section>
-          <h2>1. Survey area</h2>
-          <p className="muted">Click the map to add corners in order. Drag a corner to move it; right-click to remove it.</p>
+        <Panel n={1} title="Survey area">
+          <p className="hint">Click the map to add corners in order. Drag a corner to move it; right-click to remove it.</p>
           <div className="row">
-            <button type="button" onClick={() => setPolygon(polygon.slice(0, -1))} disabled={!polygon.length}>
+            <button type="button" className="ghost small" onClick={() => setPolygon(polygon.slice(0, -1))} disabled={!polygon.length}>
               Undo corner
             </button>
-            <button type="button" onClick={() => setPolygon([])} disabled={!polygon.length}>
+            <button type="button" className="ghost small" onClick={() => setPolygon([])} disabled={!polygon.length}>
               Clear
             </button>
-            <span className="muted">{polygon.length} corners</span>
+            <span className="hint">{polygon.length} corners</span>
           </div>
-        </section>
+        </Panel>
 
-        <section>
-          <h2>2. Flight settings</h2>
-          <Slider label="Altitude" unit="m" min={20} max={500} value={settings.altitudeM} onChange={(altitudeM) => update({ altitudeM })} />
-          <Slider label="Front overlap" unit="%" min={50} max={90} value={settings.frontOverlapPct} onChange={(frontOverlapPct) => update({ frontOverlapPct })} />
-          <Slider label="Side overlap" unit="%" min={30} max={90} value={settings.sideOverlapPct} onChange={(sideOverlapPct) => update({ sideOverlapPct })} />
-          <p className="muted">
-            Not sure what overlap to pick?{' '}
-            <a
-              className="link"
-              href={`./overlap/?alt=${settings.altitudeM}&front=${settings.frontOverlapPct}&side=${settings.sideOverlapPct}`}
-            >
-              See how overlap works →
-            </a>
-          </p>
-          <Slider label="Line direction" unit="°" min={0} max={179} value={settings.angleDeg} onChange={(angleDeg) => update({ angleDeg })} />
-          <div className="row">
-            <button type="button" onClick={() => update({ angleDeg: bestAngle(polygon) })} disabled={polygon.length < 3}>
+        <Panel n={2} title="Flight settings">
+          <div className="sliders">
+            <Slider label="Altitude" unit="m" min={20} max={500} value={settings.altitudeM} onChange={(altitudeM) => update({ altitudeM })} />
+            <Slider label="Front overlap" unit="%" tone="front" min={50} max={90} value={settings.frontOverlapPct} onChange={(frontOverlapPct) => update({ frontOverlapPct })} />
+            <Slider label="Side overlap" unit="%" tone="side" min={30} max={90} value={settings.sideOverlapPct} onChange={(sideOverlapPct) => update({ sideOverlapPct })} />
+            <p className="hint">
+              Not sure what overlap to pick? <a href={overlapHref}>See how overlap works →</a>
+            </p>
+            <Slider label="Line direction" unit="°" min={0} max={179} value={settings.angleDeg} onChange={(angleDeg) => update({ angleDeg })} />
+            <button type="button" className="ghost small" onClick={() => update({ angleDeg: bestAngle(polygon) })} disabled={polygon.length < 3}>
               Auto direction (fewest lines)
             </button>
+            <Slider label="Max speed" unit="m/s" min={1} max={15} step={0.5} value={settings.maxSpeedMs} onChange={(maxSpeedMs) => update({ maxSpeedMs })} />
           </div>
-          <Slider label="Max speed" unit="m/s" min={1} max={15} step={0.5} value={settings.maxSpeedMs} onChange={(maxSpeedMs) => update({ maxSpeedMs })} />
 
-          <fieldset>
+          <fieldset className="modes">
             <legend>Photo capture</legend>
-            <label>
-              <input type="radio" name="mode" checked={settings.mode === 'interval'} onChange={() => update({ mode: 'interval' })} />
-              Interval timer <span className="muted">— fly lines non-stop, DJI Fly shoots on a timer (few waypoints)</span>
-            </label>
-            <label>
-              <input type="radio" name="mode" checked={settings.mode === 'waypoint'} onChange={() => update({ mode: 'waypoint' })} />
-              Photo at each waypoint <span className="muted">— stop for every photo (max {MAX_WAYPOINTS} waypoints)</span>
-            </label>
+            {MODES.map((m) => (
+              <label key={m.value} className={`mode${settings.mode === m.value ? ' active' : ''}`}>
+                <input type="radio" name="mode" checked={settings.mode === m.value} onChange={() => update({ mode: m.value })} />
+                <span className="mode-name">{m.name}</span>
+                <span className="mode-body">{m.body}</span>
+              </label>
+            ))}
           </fieldset>
 
-          <div className="field">
-            <label htmlFor="finish">When finished</label>
-            <select id="finish" value={settings.finishAction} onChange={(e) => update({ finishAction: e.target.value as Settings['finishAction'] })}>
+          <label className="select">
+            <span>When finished</span>
+            <select value={settings.finishAction} onChange={(e) => update({ finishAction: e.target.value as Settings['finishAction'] })}>
               <option value="goHome">Return to home</option>
               <option value="noAction">Hover in place</option>
             </select>
-          </div>
-        </section>
+          </label>
+        </Panel>
 
-        <section>
-          <h2>3. Plan</h2>
+        <Panel n={3} title="Plan">
           {!plan ? (
-            <p className="muted">Add at least three corners to see the plan.</p>
+            <p className="hint">Add at least three corners to see the plan.</p>
           ) : (
             <>
-              <dl className="stats" data-testid="stats">
-                <dt>Area</dt>
-                <dd>{fmtArea(plan.areaM2)}</dd>
-                <dt>Ground resolution</dt>
-                <dd>{plan.footprint.gsdCm.toFixed(2)} cm/px</dd>
-                <dt>Photo footprint</dt>
-                <dd>
-                  {Math.round(plan.footprint.width)} × {Math.round(plan.footprint.height)} m
-                </dd>
-                <dt>Flight lines</dt>
-                <dd>
-                  {plan.lineCount}, {plan.lineSpacingM.toFixed(1)} m apart
-                </dd>
-                <dt>Waypoints</dt>
-                <dd>{plan.waypoints.length}</dd>
-                <dt>Photos</dt>
-                <dd>~{plan.photoCount}</dd>
-                <dt>Route length</dt>
-                <dd>{fmtDistance(plan.distanceM)}</dd>
-                <dt>Speed</dt>
-                <dd>{plan.speedMs.toFixed(1)} m/s</dd>
-                <dt>Flight time</dt>
-                <dd>~{fmtDuration(plan.durationS)}</dd>
-              </dl>
-              <p className="muted">Time and length cover the survey route only, not the flight from take-off to the first waypoint and back.</p>
+              <div className="stats plan-stats" data-testid="stats">
+                <Stat label="Area" value={fmtArea(plan.areaM2)[0]} unit={fmtArea(plan.areaM2)[1]} />
+                <Stat label="Ground resolution" value={plan.footprint.gsdCm.toFixed(2)} unit="cm/px" />
+                <Stat label="Photo footprint" value={`${Math.round(plan.footprint.width)} × ${Math.round(plan.footprint.height)}`} unit="m" />
+                <Stat label="Flight lines" value={plan.lineCount} note={`${plan.lineSpacingM.toFixed(1)} m apart`} />
+                <Stat label="Waypoints" value={plan.waypoints.length} />
+                <Stat label="Photos" value={`~${plan.photoCount}`} />
+                <Stat label="Route length" value={fmtDistance(plan.distanceM)[0]} unit={fmtDistance(plan.distanceM)[1]} />
+                <Stat label="Speed" value={plan.speedMs.toFixed(1)} unit="m/s" />
+                <Stat label="Flight time" value={`~${fmtDuration(plan.durationS)}`} unit="min" />
+              </div>
+              <p className="hint">Time and length cover the survey route only, not the flight from take-off to the first waypoint and back.</p>
 
               {plan.intervalS !== null && (
                 <p className="callout" data-testid="interval">
@@ -238,29 +223,27 @@ export function App() {
               </button>
             </>
           )}
-        </section>
+        </Panel>
 
-        <section>
-          <details>
-            <summary>How to load the KMZ into DJI Fly</summary>
-            <p className="muted">DJI Fly has no import button, so the file replaces a placeholder mission. This is a community workaround, not an official DJI feature.</p>
-            <ol>
-              <li>
-                In DJI Fly, with the drone connected, open the waypoint panel from the left of the camera view. Make the map full screen, tap two points on the map and save. This works on the ground; the add-point button only works in flight. Then close DJI Fly completely.
-              </li>
-              <li>
-                Open the controller storage (RC Pro or DJI RC: USB-C to a computer, or the built-in file manager with a microSD card) and go to <code>Android/data/dji.go.v5/files/waypoint/</code>.
-              </li>
-              <li>Open the newest folder. It holds one <code>.kmz</code> named after the folder.</li>
-              <li>Rename the downloaded file to exactly that name and replace the original.</li>
-              <li>Reopen DJI Fly and open the mission. The list thumbnail may still show the placeholder until then.</li>
-              <li>Check every waypoint, the altitude, speed and signal-lost behaviour before take-off.</li>
-            </ol>
-            <p className="muted">
-              iPhone with RC-N1: Files › On My iPhone › DJI Fly › <code>wayline_mission</code>. Altitudes are relative to the take-off point and the route does not follow terrain.
-            </p>
-          </details>
-        </section>
+        <details className="howto">
+          <summary>How to load the KMZ into DJI Fly</summary>
+          <p className="hint">DJI Fly has no import button, so the file replaces a placeholder mission. This is a community workaround, not an official DJI feature.</p>
+          <ol>
+            <li>
+              In DJI Fly, with the drone connected, open the waypoint panel from the left of the camera view. Make the map full screen, tap two points on the map and save. This works on the ground; the add-point button only works in flight. Then close DJI Fly completely.
+            </li>
+            <li>
+              Open the controller storage (RC Pro or DJI RC: USB-C to a computer, or the built-in file manager with a microSD card) and go to <code>Android/data/dji.go.v5/files/waypoint/</code>.
+            </li>
+            <li>Open the newest folder. It holds one <code>.kmz</code> named after the folder.</li>
+            <li>Rename the downloaded file to exactly that name and replace the original.</li>
+            <li>Reopen DJI Fly and open the mission. The list thumbnail may still show the placeholder until then.</li>
+            <li>Check every waypoint, the altitude, speed and signal-lost behaviour before take-off.</li>
+          </ol>
+          <p className="hint">
+            iPhone with RC-N1: Files › On My iPhone › DJI Fly › <code>wayline_mission</code>. Altitudes are relative to the take-off point and the route does not follow terrain.
+          </p>
+        </details>
       </aside>
 
       <MapView polygon={polygon} onPolygonChange={setPolygon} plan={plan} focus={focus} />

@@ -72,6 +72,7 @@ ready to take over.
 - `src/lib/wpml.ts` — `template.kml` and `waylines.wpml` in the dialect DJI Fly writes.
 - `src/lib/kmz.ts` — zips both files into the KMZ.
 - `src/App.tsx`, `src/MapView.tsx` — the UI and the Leaflet map.
+- `src/theme.css` — colours, type and shared components (top bar, buttons, sliders, stats) used by both pages.
 - `overlap/index.html`, `src/explainer/` — the overlap explainer; `model.ts` computes photo coverage.
 
 The WPML output follows a two-point mission written by DJI Fly itself for a Mavic 3 on a DJI RC Pro. Two things

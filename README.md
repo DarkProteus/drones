@@ -51,8 +51,10 @@ official DJI feature, and it can change between DJI Fly versions.
 
 ## Before you fly
 
-The export has not been validated on an aircraft yet. Treat the first flight as a test: use a small area, keep
-line of sight, and be ready to take over.
+Status: a generated mission was loaded into DJI Fly on a DJI RC Pro for a Mavic 3, and the app showed the route,
+altitudes and straight legs as planned. It has not been flown yet, and the photo-at-each-waypoint mode has not
+been loaded into DJI Fly at all. Treat the first flight as a test: use a small area, keep line of sight, and be
+ready to take over.
 
 - Check every waypoint, the altitude, the speed and the signal-lost behaviour in DJI Fly before take-off.
 - Altitudes are relative to the take-off point. The route does not follow terrain and knows nothing about

@@ -6,4 +6,9 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   server: { host: true, allowedHosts: true },
+  build: {
+    rollupOptions: {
+      input: { planner: 'index.html', overlap: 'overlap/index.html' },
+    },
+  },
 });

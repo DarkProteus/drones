@@ -153,6 +153,15 @@ export function App() {
           <Slider label="Altitude" unit="m" min={20} max={500} value={settings.altitudeM} onChange={(altitudeM) => update({ altitudeM })} />
           <Slider label="Front overlap" unit="%" min={50} max={90} value={settings.frontOverlapPct} onChange={(frontOverlapPct) => update({ frontOverlapPct })} />
           <Slider label="Side overlap" unit="%" min={30} max={90} value={settings.sideOverlapPct} onChange={(sideOverlapPct) => update({ sideOverlapPct })} />
+          <p className="muted">
+            Not sure what overlap to pick?{' '}
+            <a
+              className="link"
+              href={`./overlap/?alt=${settings.altitudeM}&front=${settings.frontOverlapPct}&side=${settings.sideOverlapPct}`}
+            >
+              See how overlap works →
+            </a>
+          </p>
           <Slider label="Line direction" unit="°" min={0} max={179} value={settings.angleDeg} onChange={(angleDeg) => update({ angleDeg })} />
           <div className="row">
             <button type="button" onClick={() => update({ angleDeg: bestAngle(polygon) })} disabled={polygon.length < 3}>

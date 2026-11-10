@@ -9,6 +9,9 @@ DJI Mavic 3 / Mavic 3 Classic, exported as a DJI Fly waypoint mission (`.kmz`).
 
 Everything runs in the browser; there is no backend.
 
+The site also hosts an interactive explainer, **How much should your drone photos overlap?**, at `overlap/`. It
+uses the same camera model and route logic, and its sliders are saved in the URL so a view can be shared.
+
 ## Run it
 
 ```sh
@@ -69,6 +72,7 @@ ready to take over.
 - `src/lib/wpml.ts` — `template.kml` and `waylines.wpml` in the dialect DJI Fly writes.
 - `src/lib/kmz.ts` — zips both files into the KMZ.
 - `src/App.tsx`, `src/MapView.tsx` — the UI and the Leaflet map.
+- `overlap/index.html`, `src/explainer/` — the overlap explainer; `model.ts` computes photo coverage.
 
 The WPML output follows a two-point mission written by DJI Fly itself for a Mavic 3 on a DJI RC Pro. Two things
 that file could not show come from open-source tools that target DJI Fly

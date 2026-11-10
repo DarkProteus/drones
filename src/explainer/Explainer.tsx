@@ -26,12 +26,13 @@ const PRESETS = [
 
 function readUrl(): State {
   const q = new URLSearchParams(location.search);
-  const num = (key: string, min: number, max: number, fallback: number) => {
+  const num = (key: string, min: number, max: number, fallback: number, step = 1) => {
     const v = Number(q.get(key));
-    return q.has(key) && Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : fallback;
+    return q.has(key) && Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v / step) * step)) : fallback;
   };
   return {
-    alt: num('alt', 20, 150, DEFAULTS.alt),
+    // Snapped to the slider step, or the thumb (which snaps) and the label (which doesn't) disagree.
+    alt: num('alt', 20, 150, DEFAULTS.alt, 5),
     front: num('front', 0, 90, DEFAULTS.front),
     side: num('side', 0, 90, DEFAULTS.side),
     wobble: q.get('wobble') === '1',

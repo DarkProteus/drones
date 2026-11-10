@@ -641,7 +641,8 @@ button {
   border-radius: 12px;
   overflow: hidden;
   cursor: crosshair;
-  touch-action: none;
+  /* Vertical swipes scroll the page; taps and sideways drags still move the probe. */
+  touch-action: pan-y;
 }
 
 .coverage-map canvas,
@@ -688,7 +689,8 @@ button {
 
 .probe-tip {
   position: absolute;
-  transform: translate(-50%, calc(-100% - 16px));
+  /* --px/--below (set inline) keep the tip inside the map: it slides along its own width and flips under the probe near the top. */
+  transform: translate(calc(var(--px, 0.5) * -100%), calc((1 - var(--below, 0)) * (-100% - 16px) + var(--below, 0) * 16px));
   padding: 5px 10px;
   border-radius: 8px;
   background: var(--ink);

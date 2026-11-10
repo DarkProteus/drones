@@ -1,12 +1,12 @@
 import type { Waypoint } from './survey';
 
+// Structure and values follow a mission written by DJI Fly itself for a Mavic 3 (WPML 1.0.2).
+
 export interface MissionOptions {
   altitudeM: number;
   speedMs: number;
   gimbalPitchDeg: number;
   finishAction: 'goHome' | 'noAction';
-  distanceM: number;
-  durationS: number;
 }
 
 const HEADER =
@@ -15,7 +15,6 @@ const HEADER =
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
-// droneEnumValue 68 is what DJI Fly writes for its consumer waypoint missions.
 function missionConfig(o: MissionOptions): string {
   return `    <wpml:missionConfig>
       <wpml:flyToWaylineMode>safely</wpml:flyToWaylineMode>
@@ -30,11 +29,11 @@ function missionConfig(o: MissionOptions): string {
     </wpml:missionConfig>`;
 }
 
-function actionGroup(groupId: number, index: number, action: string): string {
+function actionGroup(groupId: number, startIndex: number, endIndex: number, action: string): string {
   return `        <wpml:actionGroup>
           <wpml:actionGroupId>${groupId}</wpml:actionGroupId>
-          <wpml:actionGroupStartIndex>${index}</wpml:actionGroupStartIndex>
-          <wpml:actionGroupEndIndex>${index}</wpml:actionGroupEndIndex>
+          <wpml:actionGroupStartIndex>${startIndex}</wpml:actionGroupStartIndex>
+          <wpml:actionGroupEndIndex>${endIndex}</wpml:actionGroupEndIndex>
           <wpml:actionGroupMode>parallel</wpml:actionGroupMode>
           <wpml:actionTrigger>
             <wpml:actionTriggerType>reachPoint</wpml:actionTriggerType>
@@ -63,6 +62,17 @@ function gimbalRotate(actionId: number, pitchDeg: number): string {
           </wpml:action>`;
 }
 
+function gimbalEvenlyRotate(actionId: number, pitchDeg: number): string {
+  return `          <wpml:action>
+            <wpml:actionId>${actionId}</wpml:actionId>
+            <wpml:actionActuatorFunc>gimbalEvenlyRotate</wpml:actionActuatorFunc>
+            <wpml:actionActuatorFuncParam>
+              <wpml:gimbalPitchRotateAngle>${fmt(pitchDeg)}</wpml:gimbalPitchRotateAngle>
+              <wpml:payloadPositionIndex>0</wpml:payloadPositionIndex>
+            </wpml:actionActuatorFuncParam>
+          </wpml:action>`;
+}
+
 function takePhoto(actionId: number): string {
   return `          <wpml:action>
             <wpml:actionId>${actionId}</wpml:actionId>
@@ -73,13 +83,24 @@ function takePhoto(actionId: number): string {
           </wpml:action>`;
 }
 
-function placemark(wp: Waypoint, index: number, o: MissionOptions, ids: { group: number; action: number }): string {
-  const groups = [actionGroup(ids.group++, index, gimbalRotate(ids.action++, o.gimbalPitchDeg))];
-  if (wp.takePhoto) groups.push(actionGroup(ids.group++, index, takePhoto(ids.action++)));
+function placemark(
+  wp: Waypoint,
+  index: number,
+  isLast: boolean,
+  o: MissionOptions,
+  ids: { group: number; action: number },
+): string {
+  const groups = [actionGroup(ids.group++, index, index, gimbalRotate(ids.action++, o.gimbalPitchDeg))];
+  // DJI Fly holds the gimbal angle along each leg with a group spanning this waypoint and the next.
+  if (!isLast) groups.push(actionGroup(ids.group++, index, index + 1, gimbalEvenlyRotate(ids.action++, o.gimbalPitchDeg)));
+  if (wp.takePhoto) groups.push(actionGroup(ids.group++, index, index, takePhoto(ids.action++)));
 
+  // DJI Fly's own default is a curved path (useStraightLine 0); survey lines must be straight.
   return `      <Placemark>
         <Point>
-          <coordinates>${wp.lng.toFixed(8)},${wp.lat.toFixed(8)}</coordinates>
+          <coordinates>
+            ${wp.lng.toFixed(9)},${wp.lat.toFixed(9)}
+          </coordinates>
         </Point>
         <wpml:index>${index}</wpml:index>
         <wpml:executeHeight>${fmt(o.altitudeM)}</wpml:executeHeight>
@@ -88,7 +109,7 @@ function placemark(wp: Waypoint, index: number, o: MissionOptions, ids: { group:
           <wpml:waypointHeadingMode>followWayline</wpml:waypointHeadingMode>
           <wpml:waypointHeadingAngle>0</wpml:waypointHeadingAngle>
           <wpml:waypointPoiPoint>0.000000,0.000000,0.000000</wpml:waypointPoiPoint>
-          <wpml:waypointHeadingAngleEnable>0</wpml:waypointHeadingAngleEnable>
+          <wpml:waypointHeadingAngleEnable>1</wpml:waypointHeadingAngleEnable>
           <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
         </wpml:waypointHeadingParam>
         <wpml:waypointTurnParam>
@@ -97,17 +118,14 @@ function placemark(wp: Waypoint, index: number, o: MissionOptions, ids: { group:
         </wpml:waypointTurnParam>
         <wpml:useStraightLine>1</wpml:useStraightLine>
 ${groups.join('\n')}
-        <wpml:waypointGimbalHeadingParam>
-          <wpml:waypointGimbalPitchAngle>${fmt(o.gimbalPitchDeg)}</wpml:waypointGimbalPitchAngle>
-          <wpml:waypointGimbalYawAngle>0</wpml:waypointGimbalYawAngle>
-        </wpml:waypointGimbalHeadingParam>
       </Placemark>`;
 }
 
 /** wpmz/waylines.wpml: the route the aircraft executes. */
 export function buildWaylines(waypoints: Waypoint[], o: MissionOptions): string {
   const ids = { group: 1, action: 1 };
-  const placemarks = waypoints.map((wp, i) => placemark(wp, i, o, ids)).join('\n');
+  const placemarks = waypoints.map((wp, i) => placemark(wp, i, i === waypoints.length - 1, o, ids)).join('\n');
+  // DJI Fly writes distance and duration as 0 and computes them itself.
   return `${HEADER}
   <Document>
 ${missionConfig(o)}
@@ -115,8 +133,8 @@ ${missionConfig(o)}
       <wpml:templateId>0</wpml:templateId>
       <wpml:executeHeightMode>relativeToStartPoint</wpml:executeHeightMode>
       <wpml:waylineId>0</wpml:waylineId>
-      <wpml:distance>${fmt(o.distanceM)}</wpml:distance>
-      <wpml:duration>${fmt(o.durationS)}</wpml:duration>
+      <wpml:distance>0</wpml:distance>
+      <wpml:duration>0</wpml:duration>
       <wpml:autoFlightSpeed>${fmt(o.speedMs)}</wpml:autoFlightSpeed>
 ${placemarks}
     </Folder>

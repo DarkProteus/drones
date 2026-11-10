@@ -8,8 +8,6 @@ export function buildKmz(plan: SurveyPlan, altitudeM: number, finishAction: Miss
     speedMs: plan.speedMs,
     gimbalPitchDeg: -90,
     finishAction,
-    distanceM: plan.distanceM,
-    durationS: plan.durationS,
   };
   return zipSync({
     wpmz: {

@@ -236,7 +236,9 @@ export function App() {
             <summary>How to load the KMZ into DJI Fly</summary>
             <p className="muted">DJI Fly has no import button, so the file replaces a placeholder mission. This is a community workaround, not an official DJI feature.</p>
             <ol>
-              <li>In DJI Fly, with the drone connected, create and save a waypoint mission with two points. Then close DJI Fly completely.</li>
+              <li>
+                In DJI Fly, with the drone connected, open the waypoint panel from the left of the camera view. Make the map full screen, tap two points on the map and save. This works on the ground; the add-point button only works in flight. Then close DJI Fly completely.
+              </li>
               <li>
                 Open the controller storage (RC Pro or DJI RC: USB-C to a computer, or the built-in file manager with a microSD card) and go to <code>Android/data/dji.go.v5/files/waypoint/</code>.
               </li>

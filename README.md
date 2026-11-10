@@ -33,8 +33,9 @@ Pushing to `main` deploys to GitHub Pages through `.github/workflows/deploy.yml`
 DJI Fly has no import button. The file replaces a placeholder mission. This is a community workaround, not an
 official DJI feature, and it can change between DJI Fly versions.
 
-1. In DJI Fly, with the drone connected, create and save a waypoint mission with two points. Close DJI Fly
-   completely.
+1. In DJI Fly, with the drone connected, open the waypoint panel from the left of the camera view. Make the map
+   full screen, tap two points on the map and save. This works on the ground; the add-point button only works in
+   flight. Close DJI Fly completely.
 2. Open the mission folder on the device that runs DJI Fly:
    - **DJI RC Pro / DJI RC**: `Android/data/dji.go.v5/files/waypoint/`. Connect the controller to a computer over
      USB-C, or copy the KMZ to a microSD card and use the controller's file manager. On Windows the folder is
@@ -67,7 +68,9 @@ line of sight, and be ready to take over.
 - `src/lib/kmz.ts` — zips both files into the KMZ.
 - `src/App.tsx`, `src/MapView.tsx` — the UI and the Leaflet map.
 
-The WPML output was modelled on open-source tools that target DJI Fly:
-[DJIMapping](https://github.com/marcoparatore/DJIMapping), [drone-tm](https://github.com/hotosm/drone-tm) and
-[RC-2-Missions](https://github.com/fm75/RC-2-Missions). The import steps follow the
+The WPML output follows a two-point mission written by DJI Fly itself for a Mavic 3 on a DJI RC Pro. Two things
+that file could not show come from open-source tools that target DJI Fly
+([DJIMapping](https://github.com/marcoparatore/DJIMapping), [drone-tm](https://github.com/hotosm/drone-tm) and
+[RC-2-Missions](https://github.com/fm75/RC-2-Missions)): the straight-line turn mode, since DJI Fly defaults to
+curved paths, and the take-photo action. The import steps follow the
 [Litchi Utilities guide](https://www.litchiutilities.com/docs/import.php).

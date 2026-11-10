@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MAVIC3_WIDE, footprint } from '../lib/camera';
 import { Drone } from './FootprintFigure';
 import { COVERAGE_BUCKETS, bucketOf } from './model';
+import { progressAt } from './motion';
 import { Figure, Num, Slider, Stat, fmt, prefersReducedMotion, useInView } from './ui';
 
 const VW = 720;
@@ -38,7 +39,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
     if (prefersReducedMotion()) return setProgress(null);
     const t0 = performance.now();
     const tick = (t: number) => {
-      const p = Math.min(1, (t - t0) / FLY_MS);
+      const p = progressAt(t, t0, FLY_MS);
       setProgress(p);
       if (p < 1) raf.current = requestAnimationFrame(tick);
     };

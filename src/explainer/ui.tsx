@@ -1,4 +1,5 @@
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
+import { approach, progressAt } from './motion';
 
 export const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
@@ -27,31 +28,46 @@ export function useInView<T extends Element>(threshold = 0.3) {
   return [ref, inView] as const;
 }
 
-const easeOut = (p: number) => 1 - (1 - p) ** 3;
-
-/** Eases toward `target` whenever it changes. */
+/**
+ * Glides toward `target`, settling in roughly `ms`. One persistent loop chases the latest target rather than
+ * restarting an ease on every change: on phones, touch input and animation frames share a frame, and a restarted
+ * ease that sees a frame time earlier than its start extrapolates backwards, compounding every frame.
+ */
 export function useTween(target: number, ms = 450) {
   const reduced = useReducedMotion();
   const [value, setValue] = useState(target);
-  const current = useRef(target);
+  const s = useRef({ value: target, target, raf: 0, last: -1 });
+
   useEffect(() => {
-    if (reduced || current.current === target) {
-      current.current = target;
+    const st = s.current;
+    st.target = target;
+    if (reduced) {
+      cancelAnimationFrame(st.raf);
+      st.raf = 0;
+      st.value = target;
       setValue(target);
       return;
     }
-    const from = current.current;
-    const t0 = performance.now();
-    let raf = 0;
+    if (st.raf || st.value === target) return;
+    const tau = ms / 4;
+    st.last = -1;
     const tick = (t: number) => {
-      const p = Math.min(1, (t - t0) / ms);
-      current.current = from + (target - from) * easeOut(p);
-      setValue(current.current);
-      if (p < 1) raf = requestAnimationFrame(tick);
+      // First frame has no previous timestamp; assume one 60 Hz frame.
+      const dt = st.last < 0 ? 1000 / 60 : t - st.last;
+      st.last = Math.max(st.last, t);
+      st.value = approach(st.value, st.target, dt, tau);
+      if (Math.abs(st.target - st.value) <= Math.max(1e-3, Math.abs(st.target) * 1e-4)) {
+        st.value = st.target;
+        st.raf = 0;
+      } else {
+        st.raf = requestAnimationFrame(tick);
+      }
+      setValue(st.value);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    st.raf = requestAnimationFrame(tick);
   }, [target, ms, reduced]);
+
+  useEffect(() => () => cancelAnimationFrame(s.current.raf), []);
   return value;
 }
 
@@ -65,7 +81,7 @@ export function usePlayback(ms: number) {
     if (prefersReducedMotion()) return setProgress(null);
     const t0 = performance.now();
     const tick = (t: number) => {
-      const p = Math.min(1, (t - t0) / ms);
+      const p = progressAt(t, t0, ms);
       setProgress(p < 1 ? p : null);
       if (p < 1) raf.current = requestAnimationFrame(tick);
     };

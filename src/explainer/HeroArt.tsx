@@ -63,7 +63,7 @@ export function HeroArt() {
     let last = performance.now();
     const tick = (now: number) => {
       // Clamp the step so a backgrounded tab doesn't jump ahead.
-      clock.current = (clock.current + Math.min(0.1, (now - last) / 1000)) % CYCLE_S;
+      clock.current = (clock.current + Math.min(0.1, Math.max(0, (now - last) / 1000))) % CYCLE_S;
       last = now;
       setT(clock.current);
       raf = requestAnimationFrame(tick);

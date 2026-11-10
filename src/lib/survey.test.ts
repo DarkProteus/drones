@@ -129,12 +129,29 @@ describe('buildKmz', () => {
     expect(waylines.match(/<Placemark>/g)).toHaveLength(plan.waypoints.length);
     const indexes = [...waylines.matchAll(/<wpml:index>(\d+)<\/wpml:index>/g)].map((m) => Number(m[1]));
     expect(indexes).toEqual(plan.waypoints.map((_, i) => i));
-    expect(waylines.match(/<wpml:gimbalPitchRotateAngle>-90</g)).toHaveLength(plan.waypoints.length);
+    expect(waylines.match(/>gimbalRotate</g)).toHaveLength(plan.waypoints.length);
+    expect(waylines).not.toMatch(/<wpml:gimbalPitchRotateAngle>(?!-90<)/);
     expect(waylines).not.toContain('takePhoto');
-    expect(waylines).toContain(
-      `<coordinates>${plan.waypoints[0].lng.toFixed(8)},${plan.waypoints[0].lat.toFixed(8)}</coordinates>`,
+    expect(waylines.replace(/\s+/g, '')).toContain(
+      `<coordinates>${plan.waypoints[0].lng.toFixed(9)},${plan.waypoints[0].lat.toFixed(9)}</coordinates>`,
     );
     expect(waylines).toContain('<wpml:executeHeight>100</wpml:executeHeight>');
+  });
+
+  it('follows the structure DJI Fly writes itself', () => {
+    const { plan, waylines } = files('interval');
+    const last = plan.waypoints.length - 1;
+    // One gimbal hold per leg, spanning a waypoint and the next; none starts at the last waypoint.
+    const spans = [...waylines.matchAll(/StartIndex>(\d+)<\/wpml:actionGroupStartIndex>\s*<wpml:actionGroupEndIndex>(\d+)</g)]
+      .map((m) => [Number(m[1]), Number(m[2])])
+      .filter(([start, end]) => start !== end);
+    expect(spans).toEqual(Array.from({ length: last }, (_, i) => [i, i + 1]));
+    expect(waylines.match(/>gimbalEvenlyRotate</g)).toHaveLength(last);
+    // Elements DJI Fly does not write for this aircraft, and totals it leaves at zero.
+    expect(waylines).not.toContain('waypointGimbalHeadingParam');
+    expect(waylines).toContain('<wpml:distance>0</wpml:distance>');
+    expect(waylines).toContain('<wpml:duration>0</wpml:duration>');
+    expect(waylines.match(/<wpml:waypointHeadingAngleEnable>1</g)).toHaveLength(plan.waypoints.length);
   });
 
   it('adds a photo action per waypoint in waypoint mode with unique ids', () => {

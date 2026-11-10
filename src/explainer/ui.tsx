@@ -4,15 +4,21 @@ import { approach, progressAt } from './motion';
 export const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 export function useReducedMotion() {
-  const [reduced, setReduced] = useState(prefersReducedMotion);
+  return useMediaQuery('(prefers-reduced-motion: reduce)');
+}
+
+/** Tracks a media query live, e.g. a light/dark switch while the page is open. */
+export function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => window.matchMedia?.(query).matches ?? false);
   useEffect(() => {
-    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const mq = window.matchMedia?.(query);
     if (!mq) return;
-    const on = () => setReduced(mq.matches);
+    const on = () => setMatches(mq.matches);
+    on();
     mq.addEventListener('change', on);
     return () => mq.removeEventListener('change', on);
-  }, []);
-  return reduced;
+  }, [query]);
+  return matches;
 }
 
 export function useInView<T extends Element>(threshold = 0.3) {

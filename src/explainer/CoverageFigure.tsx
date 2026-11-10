@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { MAVIC3_WIDE, footprint } from '../lib/camera';
 import { COVERAGE_BUCKETS, type Rect, bucketOf, coverage, flightOrder, photoGrid, viewsPerPoint } from './model';
-import { Figure, Num, Slider, Stat, fmt, useInView, usePlayback } from './ui';
+import { Figure, Num, Slider, Stat, fmt, useInView, useMediaQuery, usePlayback } from './ui';
 
 const N = 120;
 const WOBBLE = 0.06;
@@ -54,14 +54,18 @@ export function CoverageFigure({ alt, front, side, wobble, setFront, setSide, se
 
   const [probe, setProbe] = useState({ x: 0.5, y: 0.5 });
   const canvas = useRef<HTMLCanvasElement>(null);
-  const palette = useRef<Uint8ClampedArray[] | null>(null);
+  const dark = useMediaQuery('(prefers-color-scheme: dark)');
+  // CSS colours resolved to RGB once per colour scheme; the canvas can't read CSS variables itself.
+  const palette = useRef<{ dark: boolean; rgb: Uint8ClampedArray[] } | null>(null);
 
   useEffect(() => {
     const el = canvas.current;
     if (!el) return;
     const ctx = el.getContext('2d')!;
-    palette.current ??= parseColors(el, ctx, [...COVERAGE_BUCKETS.map((b) => b.color), 'var(--rule)']);
-    const rgb = palette.current;
+    if (palette.current?.dark !== dark) {
+      palette.current = { dark, rgb: parseColors(el, ctx, [...COVERAGE_BUCKETS.map((b) => b.color), 'var(--rule)']) };
+    }
+    const rgb = palette.current.rgb;
     const img = ctx.createImageData(N, N);
     for (let i = 0; i < N * N; i++) {
       const n = cov.counts[i];
@@ -70,7 +74,7 @@ export function CoverageFigure({ alt, front, side, wobble, setFront, setSide, se
       img.data.set([c[0], c[1], c[2], 255], i * 4);
     }
     ctx.putImageData(img, 0, 0);
-  }, [cov, sweeping]);
+  }, [cov, sweeping, dark]);
 
   const px = probe.x * view;
   const py = probe.y * view;
@@ -157,7 +161,10 @@ export function CoverageFigure({ alt, front, side, wobble, setFront, setSide, se
             {!sweeping && <circle cx={px} cy={py} r={markerSize} className="probe" vectorEffect="non-scaling-stroke" />}
           </svg>
           {!sweeping && (
-            <div className="probe-tip" style={{ left: `${probe.x * 100}%`, top: `${probe.y * 100}%` }}>
+            <div
+              className="probe-tip"
+              style={{ left: `${probe.x * 100}%`, top: `${probe.y * 100}%`, '--px': probe.x, '--below': probe.y < 0.18 ? 1 : 0 } as CSSProperties}
+            >
               Seen by <strong>{seeing.length}</strong> {seeing.length === 1 ? 'photo' : 'photos'}
             </div>
           )}

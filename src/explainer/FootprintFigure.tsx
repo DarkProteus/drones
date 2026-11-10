@@ -24,42 +24,60 @@ export function Drone({ x, y, scale = 1 }: { x: number; y: number; scale?: numbe
 
 function Target({ gsdCm }: { gsdCm: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const scratch = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const size = canvas.width;
     const patchCm = 100;
-    const px = patchCm / gsdCm;
-    const block = size / px;
+    // One image pixel per camera pixel, then scaled up without smoothing: far cheaper than a fillRect per block.
+    const n = Math.ceil(patchCm / gsdCm);
+    const block = size / (patchCm / gsdCm);
     // Odd sub-pixel phase so the pixel grid never lines up neatly with the target, as in a real photo.
     const phase = 0.37 * gsdCm;
     const half = 30;
-    const value = (xCm: number, yCm: number) => {
-      const x = xCm - patchCm / 2;
-      const y = yCm - patchCm / 2;
-      if (Math.abs(x) > half || Math.abs(y) > half) return [118, 140, 92];
-      return (x < 0) === (y < 0) ? [24, 26, 30] : [240, 240, 236];
-    };
-    const ss = 4;
-    for (let j = 0; j * block < size; j++) {
-      for (let i = 0; i * block < size; i++) {
+    // Supersampling only softens block edges; once blocks are a few screen pixels wide, 2×2 looks the same.
+    const ss = n > 60 ? 2 : 4;
+    const img = new ImageData(n, n);
+    const d = img.data;
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
         let r = 0;
         let g = 0;
         let b = 0;
         for (let sy = 0; sy < ss; sy++) {
+          const y = (j + (sy + 0.5) / ss) * gsdCm - phase - patchCm / 2;
           for (let sx = 0; sx < ss; sx++) {
-            const [vr, vg, vb] = value((i + (sx + 0.5) / ss) * gsdCm - phase, (j + (sy + 0.5) / ss) * gsdCm - phase);
-            r += vr;
-            g += vg;
-            b += vb;
+            const x = (i + (sx + 0.5) / ss) * gsdCm - phase - patchCm / 2;
+            if (Math.abs(x) > half || Math.abs(y) > half) {
+              r += 118;
+              g += 140;
+              b += 92;
+            } else if (x < 0 === y < 0) {
+              r += 24;
+              g += 26;
+              b += 30;
+            } else {
+              r += 240;
+              g += 240;
+              b += 236;
+            }
           }
         }
-        const n = ss * ss;
-        ctx.fillStyle = `rgb(${r / n} ${g / n} ${b / n})`;
-        ctx.fillRect(Math.floor(i * block), Math.floor(j * block), Math.ceil(block) + 1, Math.ceil(block) + 1);
+        const k = (j * n + i) * 4;
+        d[k] = r / (ss * ss);
+        d[k + 1] = g / (ss * ss);
+        d[k + 2] = b / (ss * ss);
+        d[k + 3] = 255;
       }
     }
+    const off = (scratch.current ??= document.createElement('canvas'));
+    off.width = n;
+    off.height = n;
+    off.getContext('2d')!.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(off, 0, 0, n * block, n * block);
   }, [gsdCm]);
   return <canvas ref={ref} width={240} height={240} className="target" aria-label="A 60 cm ground target as the camera would see it" />;
 }

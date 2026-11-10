@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { MAVIC3_WIDE, footprint } from '../lib/camera';
 import { CostFigure } from './CostFigure';
 import { CoverageFigure } from './CoverageFigure';
@@ -44,11 +44,19 @@ export function Explainer() {
   const set = (patch: Partial<State>) => setState((s) => ({ ...s, ...patch }));
   const { alt, front, side, wobble } = state;
   const fp = footprint(MAVIC3_WIDE, alt);
+  // Figures 2–4 follow at low priority so a fast drag on one slider keeps its own figure smooth.
+  const lazy = useDeferredValue(state);
 
-  useEffect(() => {
+  const shareUrl = () => {
     const q = new URLSearchParams({ alt: String(alt), front: String(front), side: String(side) });
     if (wobble) q.set('wobble', '1');
-    history.replaceState(null, '', `?${q}${location.hash}`);
+    return `${location.pathname}?${q}${location.hash}`;
+  };
+
+  // Debounced: replaceState on every slider step is surprisingly expensive.
+  useEffect(() => {
+    const t = setTimeout(() => history.replaceState(null, '', shareUrl()), 250);
+    return () => clearTimeout(t);
   }, [alt, front, side, wobble]);
 
   // Reveal blocks as they scroll in. A data attribute, not a class, so React re-renders don't strip it. Checking
@@ -77,11 +85,11 @@ export function Explainer() {
 
   const share = async () => {
     try {
-      await navigator.clipboard.writeText(location.href);
+      await navigator.clipboard.writeText(location.origin + shareUrl());
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      prompt('Copy this link', location.href);
+      prompt('Copy this link', location.origin + shareUrl());
     }
   };
 
@@ -151,7 +159,7 @@ export function Explainer() {
             sits in 3D. Two photos are the bare minimum. In practice, some matches fail on shadows, moving leaves or repeating
             texture, so the software needs extra photos of each spot.
           </p>
-          <FrontFigure alt={alt} front={front} setFront={(v) => set({ front: v })} />
+          <FrontFigure alt={lazy.alt} front={front} setFront={(v) => set({ front: v })} />
           <p>
             With overlap <em>o</em>, each spot appears in about <span className="formula">1 ÷ (1 − o)</span> photos. 50% gives 2,
             75% gives 4, and 90% gives 10. Look at the left end of the strip: the first few metres of every line get fewer photos.
@@ -172,7 +180,7 @@ export function Explainer() {
             1 ÷ ((1 − <span className="t-front">front</span>) × (1 − <span className="t-side">side</span>))
           </p>
           <CoverageFigure
-            alt={alt}
+            alt={lazy.alt}
             front={front}
             side={side}
             wobble={wobble}
@@ -197,7 +205,7 @@ export function Explainer() {
             flight time. Front overlap mostly adds <strong>photos</strong>. Past a point it costs time too. DJI Fly's shortest
             shooting interval is 2&nbsp;seconds, so to take photos closer together the drone has to fly slower.
           </p>
-          <CostFigure alt={alt} front={front} side={side} />
+          <CostFigure alt={lazy.alt} front={lazy.front} side={lazy.side} />
           <p>
             That's why many pilots push front overlap higher than side overlap. Extra photos along the line are cheap. Extra lines
             are not.

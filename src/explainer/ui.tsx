@@ -133,4 +133,10 @@ export function Figure({ id, n, title, children, caption }: { id?: string; n: nu
   );
 }
 
-export const fmt = (v: number, digits = 0) => v.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+// toLocaleString with options builds a new formatter per call, which is slow inside per-frame tweens.
+const formatters = new Map<number, Intl.NumberFormat>();
+export const fmt = (v: number, digits = 0) => {
+  let f = formatters.get(digits);
+  if (!f) formatters.set(digits, (f = new Intl.NumberFormat('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits })));
+  return f.format(v);
+};

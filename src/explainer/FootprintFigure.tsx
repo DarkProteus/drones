@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { MAVIC3_WIDE, footprint } from '../lib/camera';
-import { Figure, Slider, Stat, fmt } from './ui';
+import { Figure, Num, Slider, Stat, fmt, useTween } from './ui';
 
 const W = 560;
 const H = 350;
@@ -11,11 +11,13 @@ const CX = W / 2;
 export function Drone({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   return (
     <g className="drone" transform={`translate(${x} ${y}) scale(${scale})`}>
-      <line x1={-15} y1={-3} x2={15} y2={-3} />
-      <ellipse cx={-17} cy={-6} rx={9} ry={2.2} className="rotor" />
-      <ellipse cx={17} cy={-6} rx={9} ry={2.2} className="rotor" />
-      <rect x={-8} y={-6} width={16} height={8} rx={3} className="body" />
-      <circle cx={0} cy={4} r={2.6} className="lens" />
+      <g className="drone-bob">
+        <line x1={-15} y1={-3} x2={15} y2={-3} />
+        <ellipse cx={-17} cy={-6} rx={9} ry={2.2} className="rotor" />
+        <ellipse cx={17} cy={-6} rx={9} ry={2.2} className="rotor" />
+        <rect x={-8} y={-6} width={16} height={8} rx={3} className="body" />
+        <circle cx={0} cy={4} r={2.6} className="lens" />
+      </g>
     </g>
   );
 }
@@ -64,8 +66,11 @@ function Target({ gsdCm }: { gsdCm: number }) {
 
 export function FootprintFigure({ alt, setAlt }: { alt: number; setAlt: (v: number) => void }) {
   const fp = footprint(MAVIC3_WIDE, alt);
-  const top = GROUND - alt * K;
-  const half = (fp.width * K) / 2;
+  // The diagram glides to the new altitude; the stats and target use the exact value.
+  const altT = useTween(alt, 380);
+  const fpT = footprint(MAVIC3_WIDE, altT);
+  const top = GROUND - altT * K;
+  const half = (fpT.width * K) / 2;
   const legal = GROUND - 120 * K;
   return (
     <Figure n={1} title="Altitude sets footprint and detail">
@@ -89,14 +94,14 @@ export function FootprintFigure({ alt, setAlt }: { alt: number; setAlt: (v: numb
             <line x1={36} x2={36} y1={top} y2={GROUND} />
             <line x1={30} x2={42} y1={top} y2={top} />
             <line x1={30} x2={42} y1={GROUND} y2={GROUND} />
-            <text x={46} y={(top + GROUND) / 2 + 4}>{alt} m</text>
+            <text x={46} y={(top + GROUND) / 2 + 4}>{Math.round(altT)} m</text>
           </g>
           <g className="dim">
             <line x1={CX - half} x2={CX + half} y1={GROUND + 18} y2={GROUND + 18} />
             <line x1={CX - half} x2={CX - half} y1={GROUND + 12} y2={GROUND + 24} />
             <line x1={CX + half} x2={CX + half} y1={GROUND + 12} y2={GROUND + 24} />
             <text x={CX} y={GROUND + 32} textAnchor="middle" className="halo">
-              {fmt(fp.width)} m on the ground
+              {fmt(fpT.width)} m on the ground
             </text>
           </g>
           <Drone x={CX} y={top - 4} scale={1.3} />
@@ -104,16 +109,28 @@ export function FootprintFigure({ alt, setAlt }: { alt: number; setAlt: (v: numb
         <div className="target-box">
           <Target gsdCm={fp.gsdCm} />
           <p className="target-caption">
-            A 60&nbsp;cm ground marker, one block per pixel. It spans about <strong>{fmt(60 / fp.gsdCm)} pixels</strong>.
+            A 60&nbsp;cm ground marker, one block per pixel. It spans about{' '}
+            <strong>
+              <Num value={60 / fp.gsdCm} /> pixels
+            </strong>
+            .
           </p>
         </div>
       </div>
       <div className="controls">
         <Slider label="Altitude" value={alt} min={20} max={150} step={5} unit="m" onChange={setAlt} />
         <div className="stats">
-          <Stat label="Footprint" value={`${fmt(fp.width)} × ${fmt(fp.height)}`} unit="m" />
-          <Stat label="Ground sample distance" value={fmt(fp.gsdCm, 2)} unit="cm/px" />
-          <Stat label="Area per photo" value={fmt((fp.width * fp.height) / 10000, 2)} unit="ha" />
+          <Stat
+            label="Footprint"
+            value={
+              <>
+                <Num value={fp.width} /> × <Num value={fp.height} />
+              </>
+            }
+            unit="m"
+          />
+          <Stat label="Ground sample distance" value={<Num value={fp.gsdCm} digits={2} />} unit="cm/px" />
+          <Stat label="Area per photo" value={<Num value={(fp.width * fp.height) / 10000} digits={2} />} unit="ha" />
         </div>
       </div>
     </Figure>

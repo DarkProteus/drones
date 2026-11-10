@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MAVIC3_WIDE, footprint } from '../lib/camera';
 import { Drone } from './FootprintFigure';
 import { COVERAGE_BUCKETS, bucketOf } from './model';
-import { Figure, Slider, Stat, fmt } from './ui';
+import { Figure, Num, Slider, Stat, fmt, prefersReducedMotion, useInView } from './ui';
 
 const VW = 720;
 const LEFT = 20;
@@ -15,8 +15,6 @@ const STRIP_Y = BARS_Y + BARS_H + 12;
 const STRIP_H = 26;
 const VH = STRIP_Y + STRIP_H + 24;
 const FLY_MS = 4200;
-
-const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export function FrontFigure({ alt, front, setFront }: { alt: number; front: number; setFront: (v: number) => void }) {
   const fp = footprint(MAVIC3_WIDE, alt);
@@ -37,7 +35,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
   const fly = () => {
     cancelAnimationFrame(raf.current);
-    if (reducedMotion()) return setProgress(null);
+    if (prefersReducedMotion()) return setProgress(null);
     const t0 = performance.now();
     const tick = (t: number) => {
       const p = Math.min(1, (t - t0) / FLY_MS);
@@ -46,6 +44,16 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
     };
     raf.current = requestAnimationFrame(tick);
   };
+
+  // Fly once on its own the first time the figure scrolls into view.
+  const [svgRef, inView] = useInView<SVGSVGElement>(0.5);
+  const autoplayed = useRef(false);
+  useEffect(() => {
+    if (inView && !autoplayed.current) {
+      autoplayed.current = true;
+      fly();
+    }
+  }, [inView]);
 
   const resting = progress === null;
   const droneM = resting
@@ -78,7 +86,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
       title="Photos along one flight line, seen from the side"
       caption="Bars below the ground are the photos, staggered across rows so their overlap stays visible. The coloured strip counts how many photos see each spot."
     >
-      <svg viewBox={`0 0 ${VW} ${VH}`} className="fig-svg" role="img" aria-label={`At ${front}% front overlap each point is seen by about ${perSpot} photos`}>
+      <svg ref={svgRef} viewBox={`0 0 ${VW} ${VH}`} className="fig-svg" role="img" aria-label={`At ${front}% front overlap each point is seen by about ${perSpot} photos`}>
         <rect width={VW} height={GROUND} fill="url(#sky2)" />
         <defs>
           <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
@@ -91,7 +99,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
           <polygon
             key={i}
             points={`${X(p + H / 2)},${DRONE_Y} ${X(p)},${GROUND} ${X(p + H)},${GROUND}`}
-            className={i === cur ? 'cone' : i === prev ? 'cone prev' : 'cone faint'}
+            className={(i === cur ? 'cone' : i === prev ? 'cone prev' : 'cone faint') + (resting ? '' : ' fresh')}
           />
         ))}
         {prev >= 0 && overlapB > overlapA && (
@@ -105,6 +113,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
         {shown.map((p, i) => (
           <circle key={i} cx={X(p + H / 2)} cy={DRONE_Y} r={i === cur ? 0 : 2.5} className="shot" />
         ))}
+        {!resting && cur >= 0 && <circle key={`flash-${cur}`} cx={X(shown[cur] + H / 2)} cy={DRONE_Y} r={16} className="shutter" />}
         <Drone x={X(droneM)} y={DRONE_Y - 4} scale={1.2} />
         <rect y={GROUND} width={VW} height={VH - GROUND} className="ground soft" />
         <line x1={0} x2={VW} y1={GROUND} y2={GROUND} className="ground-line" />
@@ -123,7 +132,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
               width={Math.max(0, (x1 - x0) * s)}
               height={barH}
               rx={Math.min(3, barH / 2)}
-              className={i === cur ? 'bar cur' : i === prev ? 'bar prev' : 'bar'}
+              className={(i === cur ? 'bar cur' : i === prev ? 'bar prev' : 'bar') + (resting ? '' : ' grow')}
             />
           );
         })}
@@ -155,7 +164,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
           {progress !== null && progress < 1 ? 'Flying…' : '▶ Fly the line'}
         </button>
         <div className="stats">
-          <Stat label="Photo every" value={fmt(spacing, 1)} unit="m" />
+          <Stat label="Photo every" value={<Num value={spacing} digits={1} />} unit="m" />
           <Stat label="Photos per spot" value={perSpot} note="away from the line ends" />
         </div>
       </div>

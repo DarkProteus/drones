@@ -1011,3 +1011,445 @@ button {
     transition: none !important;
   }
 }
+
+/* ================= motion ================= */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 22px;
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rotor {
+  to {
+    transform: scaleX(0.3);
+  }
+}
+
+@keyframes bob {
+  50% {
+    translate: 0 -3px;
+  }
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes shutter {
+  from {
+    opacity: 0.9;
+    scale: 0.4;
+  }
+  to {
+    opacity: 0;
+    scale: 1.6;
+  }
+}
+
+@keyframes stamp {
+  from {
+    fill-opacity: 0.3;
+    stroke-opacity: 0.95;
+  }
+}
+
+@keyframes cone-in {
+  from {
+    fill: var(--front-soft);
+    stroke: var(--front);
+    stroke-opacity: 1;
+  }
+}
+
+@keyframes grow {
+  from {
+    scale: 0 1;
+  }
+}
+
+@keyframes snap {
+  from {
+    stroke-opacity: 1;
+    fill-opacity: 0.35;
+  }
+  to {
+    stroke-opacity: 0;
+    fill-opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 0 0;
+  }
+}
+
+@keyframes progress {
+  to {
+    scale: 1 1;
+  }
+}
+
+/* Hero entrance */
+.hero > * {
+  animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.hero > :nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.hero > :nth-child(3) {
+  animation-delay: 0.18s;
+}
+
+.hero > :nth-child(4) {
+  animation-delay: 0.26s;
+}
+
+.hero > :nth-child(5) {
+  animation-delay: 0.36s;
+}
+
+.hero h1 {
+  /* A colour band sweeps once across the title; both ends of the strip are plain ink. */
+  background: linear-gradient(100deg, var(--ink) 35%, var(--front) 45%, var(--side) 55%, var(--ink) 65%) 100% 0 / 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation:
+    rise 0.9s 0.08s cubic-bezier(0.2, 0.7, 0.2, 1) both,
+    shimmer 2.6s 1s ease-in-out both;
+}
+
+/* Reading progress, driven by scroll position where supported. */
+.read-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--front), var(--side));
+  transform-origin: left;
+  scale: 0 1;
+  animation: progress linear both;
+  animation-timeline: scroll(root);
+}
+
+@supports not (animation-timeline: scroll()) {
+  .read-progress {
+    display: none;
+  }
+}
+
+/* Hero banner */
+.hero-art {
+  position: relative;
+  width: min(1040px, calc(100vw - 32px));
+  height: clamp(190px, 26vw, 300px);
+  margin: 40px 0 0 50%;
+  transform: translateX(-50%);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.hero-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.land {
+  fill: var(--ground-soft);
+}
+
+.field {
+  fill: var(--ground);
+}
+
+.field.f1 {
+  fill-opacity: 0.55;
+}
+
+.field.f2 {
+  fill-opacity: 0.35;
+}
+
+.field.f3 {
+  fill-opacity: 0.75;
+}
+
+.crop-row {
+  stroke: var(--ink);
+  stroke-opacity: 0.06;
+  stroke-width: 2;
+}
+
+.tree {
+  fill: var(--c5);
+  fill-opacity: 0.45;
+}
+
+.road {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.stamp {
+  fill: var(--side);
+  fill-opacity: 0.04;
+  stroke: var(--side);
+  stroke-opacity: 0.2;
+  stroke-width: 1;
+  animation: stamp 0.9s ease-out;
+}
+
+.live-frame {
+  fill: none;
+  stroke: var(--front);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+}
+
+.shutter {
+  fill: none;
+  stroke: var(--front);
+  stroke-width: 2.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: shutter 0.55s ease-out forwards;
+}
+
+.drone-top line {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.prop {
+  fill: var(--ink);
+  fill-opacity: 0.18;
+  stroke: var(--ink);
+  stroke-opacity: 0.5;
+  stroke-dasharray: 9 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin 0.35s linear infinite;
+}
+
+.hull {
+  fill: var(--ink);
+}
+
+.eye {
+  fill: var(--front);
+}
+
+.hero-hud {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: flex;
+  gap: 14px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+.hero-hud span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-hud i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.dot-front {
+  background: var(--front);
+}
+
+.dot-side {
+  background: var(--side);
+}
+
+.hud-count {
+  min-width: 82px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scroll reveal */
+.article section > *,
+.presets > *,
+.cta {
+  transition:
+    opacity 0.7s ease,
+    translate 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.article section > :not([data-shown]),
+.presets > :not([data-shown]),
+.cta:not([data-shown]) {
+  opacity: 0;
+  translate: 0 28px;
+}
+
+.presets > :nth-child(2) {
+  transition-delay: 0.1s;
+}
+
+.presets > :nth-child(3) {
+  transition-delay: 0.2s;
+}
+
+/* Section numbers pop in */
+.num {
+  transition: scale 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) 0.15s;
+}
+
+.article h2:not([data-shown]) .num {
+  scale: 0.2;
+}
+
+/* Drones */
+.drone-bob {
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+.drone .rotor {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rotor 0.09s linear infinite alternate;
+}
+
+/* Fig. 2 flight */
+.cone.fresh {
+  animation: cone-in 0.6s ease-out;
+}
+
+.bar.grow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: grow 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Fig. 3 survey playback */
+.snap {
+  fill: var(--front);
+  stroke: var(--front);
+  stroke-width: 2;
+  animation: snap 0.5s ease-out forwards;
+}
+
+.map-drone line {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.map-drone .prop {
+  stroke-dasharray: 4 2;
+}
+
+.map-drone-halo {
+  fill: var(--card);
+  fill-opacity: 0.75;
+}
+
+.sweep-hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Fig. 4 charts draw in, then the markers glide */
+.series {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+}
+
+.figure[data-shown] .series {
+  animation: draw 1.4s 0.25s cubic-bezier(0.3, 0.6, 0.2, 1) forwards;
+}
+
+.figure[data-shown] .series.front {
+  animation-delay: 0.45s;
+}
+
+.dot {
+  transition:
+    cx 0.35s ease,
+    cy 0.35s ease;
+}
+
+.preset-foot {
+  transition: color 0.2s;
+}
+
+.preset:hover .preset-foot {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before {
+    animation: none !important;
+  }
+
+  .article section > *,
+  .presets > *,
+  .cta {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+
+  .article h2 .num {
+    scale: 1;
+  }
+
+  .series {
+    stroke-dashoffset: 0;
+  }
+
+  .hero h1 {
+    color: var(--ink);
+    background: none;
+  }
+
+  .read-progress {
+    display: none;
+  }
+}

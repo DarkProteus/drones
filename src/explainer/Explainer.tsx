@@ -4,6 +4,7 @@ import { CostFigure } from './CostFigure';
 import { CoverageFigure } from './CoverageFigure';
 import { FootprintFigure } from './FootprintFigure';
 import { FrontFigure } from './FrontFigure';
+import { HeroArt } from './HeroArt';
 import { viewsPerPoint } from './model';
 import { fmt } from './ui';
 
@@ -50,6 +51,30 @@ export function Explainer() {
     history.replaceState(null, '', `?${q}${location.hash}`);
   }, [alt, front, side, wobble]);
 
+  // Reveal blocks as they scroll in. A data attribute, not a class, so React re-renders don't strip it. Checking
+  // position rather than intersection also reveals blocks a jump (anchor, preset button) skipped over.
+  useEffect(() => {
+    let raf = 0;
+    const reveal = () => {
+      raf = 0;
+      const limit = innerHeight * 0.92;
+      document.querySelectorAll('.article section > *, .presets > *, .cta').forEach((el) => {
+        if (!el.hasAttribute('data-shown') && el.getBoundingClientRect().top < limit) el.setAttribute('data-shown', '');
+      });
+    };
+    const onScroll = () => {
+      raf ||= requestAnimationFrame(reveal);
+    };
+    reveal();
+    addEventListener('scroll', onScroll, { passive: true });
+    addEventListener('resize', onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      removeEventListener('scroll', onScroll);
+      removeEventListener('resize', onScroll);
+    };
+  }, []);
+
   const share = async () => {
     try {
       await navigator.clipboard.writeText(location.href);
@@ -68,6 +93,7 @@ export function Explainer() {
   return (
     <>
       <nav className="topbar">
+        <span className="read-progress" aria-hidden="true" />
         <a href="../" className="brand">
           <span className="brand-mark" aria-hidden="true" />
           Survey Mission Planner
@@ -89,6 +115,7 @@ export function Explainer() {
           drains batteries and processing time. Drag the sliders to see why the usual answer is <em>about 75 to 85 percent</em>.
         </p>
         <p className="byline">Numbers use the DJI Mavic 3 camera · about 6 minutes</p>
+        <HeroArt />
       </header>
 
       <main className="article">

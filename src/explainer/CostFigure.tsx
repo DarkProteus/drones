@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { makeProjection } from '../lib/geo';
 import { planSurvey } from '../lib/survey';
-import { Figure, Stat, fmt } from './ui';
+import { Figure, Num, Stat, fmt } from './ui';
 
 const SIDE_M = Math.sqrt(100_000); // 10 ha square
 const MAX_SPEED = 8; // the planner's default
@@ -58,8 +58,8 @@ function Chart({ title, unit, front, side, current }: { title: string; unit: str
             {x}%
           </text>
         ))}
-        <path d={path(side)} className="series side" />
-        <path d={path(front)} className="series front" />
+        <path d={path(side)} pathLength={1} className="series side" />
+        <path d={path(front)} pathLength={1} className="series front" />
         {current.s[0] >= 50 && <circle cx={X(current.s[0])} cy={Y(current.s[1])} r={5} className="dot side" />}
         {current.f[0] >= 50 && <circle cx={X(current.f[0])} cy={Y(current.f[1])} r={5} className="dot front" />}
       </svg>
@@ -99,10 +99,10 @@ export function CostFigure({ alt, front, side }: { alt: number; front: number; s
         <Chart title="Photos" unit="count" front={pick(data.byFront, 'photos')} side={pick(data.bySide, 'photos')} current={cur('photos')} />
       </div>
       <div className="stats">
-        <Stat label="Flight time" value={fmt(now.minutes, 1)} unit="min" note={now.minutes > 25 ? 'likely needs a second battery' : 'likely one battery'} />
-        <Stat label="Photos" value={fmt(now.photos)} />
-        <Stat label="Flight lines" value={now.lines} />
-        <Stat label="Speed" value={fmt(now.speed, 1)} unit="m/s" note={now.speed < MAX_SPEED - 0.05 ? 'slowed down to keep overlap' : 'full speed'} />
+        <Stat label="Flight time" value={<Num value={now.minutes} digits={1} />} unit="min" note={now.minutes > 25 ? 'likely needs a second battery' : 'likely one battery'} />
+        <Stat label="Photos" value={<Num value={now.photos} />} />
+        <Stat label="Flight lines" value={<Num value={now.lines} />} />
+        <Stat label="Speed" value={<Num value={now.speed} digits={1} />} unit="m/s" note={now.speed < MAX_SPEED - 0.05 ? 'slowed down to keep overlap' : 'full speed'} />
       </div>
     </Figure>
   );

@@ -20,10 +20,20 @@ export interface GridParams {
   wobble: number;
 }
 
+export interface Photo extends Rect {
+  /** Flight line index; even lines are flown toward y = 0. */
+  line: number;
+}
+
 export interface PhotoGrid {
-  rects: Rect[];
-  /** x of each flight line that crosses the view. */
-  lines: number[];
+  rects: Photo[];
+  /** Flight lines that cross the view. */
+  lines: { x: number; line: number }[];
+}
+
+/** Photos in the order the drone takes them along its serpentine route. */
+export function flightOrder(rects: Photo[]): Photo[] {
+  return [...rects].sort((a, b) => a.line - b.line || (a.line % 2 === 0 ? b.y0 - a.y0 : a.y0 - b.y0));
 }
 
 // Stable pseudo-random value in [0, 1) per photo, so photos don't reshuffle while a slider moves.
@@ -38,16 +48,16 @@ function hash(i: number, j: number, k: number): number {
 export function photoGrid({ W, H, front, side, view, wobble }: GridParams): PhotoGrid {
   const sx = W * (1 - side);
   const sy = H * (1 - front);
-  const rects: Rect[] = [];
-  const lines: number[] = [];
+  const rects: Photo[] = [];
+  const lines: PhotoGrid['lines'] = [];
   const pad = Math.max(W, H) * (1 + wobble);
   for (let j = Math.floor(-pad / sx); j * sx <= view + pad; j++) {
     const cx = j * sx + sx / 2;
-    if (cx >= 0 && cx <= view) lines.push(cx);
+    if (cx >= 0 && cx <= view) lines.push({ x: cx, line: j });
     for (let i = Math.floor(-pad / sy); i * sy <= view + pad; i++) {
       const x = cx + (hash(i, j, 1) * 2 - 1) * wobble * W;
       const y = i * sy + sy / 2 + (hash(i, j, 2) * 2 - 1) * wobble * H;
-      const r = { x0: x - W / 2, y0: y - H / 2, x1: x + W / 2, y1: y + H / 2 };
+      const r = { x0: x - W / 2, y0: y - H / 2, x1: x + W / 2, y1: y + H / 2, line: j };
       if (r.x1 > 0 && r.x0 < view && r.y1 > 0 && r.y0 < view) rects.push(r);
     }
   }

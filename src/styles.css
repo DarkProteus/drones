@@ -74,6 +74,10 @@ p {
   color: #ff7b72;
 }
 
+.link {
+  color: var(--accent);
+}
+
 button,
 input,
 select {

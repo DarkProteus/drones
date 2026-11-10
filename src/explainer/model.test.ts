@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bucketOf, coverage, photoGrid, viewsPerPoint } from './model';
+import { bucketOf, coverage, flightOrder, photoGrid, viewsPerPoint } from './model';
 
 const base = { W: 100, H: 75, view: 240, wobble: 0 };
 
@@ -31,7 +31,20 @@ describe('coverage', () => {
   it('only keeps flight lines inside the view', () => {
     const { lines } = photoGrid({ ...base, front: 0.8, side: 0.7 });
     expect(lines.length).toBeGreaterThan(0);
-    expect(lines.every((x) => x >= 0 && x <= base.view)).toBe(true);
+    expect(lines.every(({ x }) => x >= 0 && x <= base.view)).toBe(true);
+  });
+});
+
+describe('flightOrder', () => {
+  it('flies line by line, alternating direction', () => {
+    const { rects } = photoGrid({ ...base, front: 0.8, side: 0.7 });
+    const order = flightOrder(rects);
+    expect(order).toHaveLength(rects.length);
+    for (let i = 1; i < order.length; i++) {
+      const [a, b] = [order[i - 1], order[i]];
+      expect(b.line).toBeGreaterThanOrEqual(a.line);
+      if (a.line === b.line) expect(a.line % 2 === 0 ? b.y0 < a.y0 : b.y0 > a.y0).toBe(true);
+    }
   });
 });
 

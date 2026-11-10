@@ -135,7 +135,7 @@ export function FrontFigure({ alt, front, setFront }: { alt: number; front: numb
             <g key={i}>
               <rect x={X(seg.a)} y={STRIP_Y} width={w} height={STRIP_H} fill={pending ? 'var(--rule)' : COVERAGE_BUCKETS[bucketOf(seg.n)].color} />
               {w > 16 && !pending && (
-                <text x={X(seg.a) + w / 2} y={STRIP_Y + 17} textAnchor="middle" className={`strip-text ${bucketOf(seg.n) >= 4 ? 'on-dark' : ''}`}>
+                <text x={X(seg.a) + w / 2} y={STRIP_Y + 17} textAnchor="middle" className={`strip-text ${bucketOf(seg.n) >= 4 ? 'on-dark' : bucketOf(seg.n) <= 1 ? 'on-bright' : ''}`}>
                   {seg.n}
                 </text>
               )}

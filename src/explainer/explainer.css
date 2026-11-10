@@ -467,7 +467,8 @@ button {
 }
 
 @media (prefers-color-scheme: dark) {
-  .strip-text.on-dark {
+  .strip-text.on-dark,
+  .strip-text.on-bright {
     fill: #0b1213;
   }
 }
